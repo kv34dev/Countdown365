@@ -166,35 +166,72 @@ struct ContentView: View {
 }
 
 // MARK: - Starfield
+// Seeded RNG so star positions are always identical — never re-randomised on re-render.
+struct SeededRandom {
+    private var state: UInt64
+    init(seed: UInt64) { state = seed }
+    mutating func nextUInt64() -> UInt64 {
+        state = state &* 6364136223846793005 &+ 1442695040888963407
+        return state
+    }
+    mutating func next(in range: ClosedRange<Double>) -> Double {
+        let t = Double(nextUInt64()) / Double(UInt64.max)
+        return range.lowerBound + t * (range.upperBound - range.lowerBound)
+    }
+}
+
+struct StarData: Identifiable {
+    let id: Int
+    let x, y, size: CGFloat
+    let opacity, speed, delay: Double
+}
+
+// Generated once at app launch — positions are fixed forever.
+private let fixedStars: [StarData] = {
+    var rng = SeededRandom(seed: 42)
+    return (0..<200).map { i in
+        StarData(
+            id: i,
+            x: CGFloat(rng.next(in: 0...1)),
+            y: CGFloat(rng.next(in: 0...1)),
+            size: CGFloat(rng.next(in: 0.8...3.2)),
+            opacity: rng.next(in: 0.3...1.0),
+            speed: rng.next(in: 1.8...4.5),
+            delay: rng.next(in: 0...3)
+        )
+    }
+}()
+
 struct StarfieldView: View {
-    struct Star: Identifiable {
-        let id = UUID()
-        let x, y, size: CGFloat
-        let opacity, speed: Double
-    }
     @State private var blink = false
-    let stars: [Star] = (0..<200).map { _ in
-        Star(x: .random(in: 0...1), y: .random(in: 0...1),
-             size: .random(in: 0.8...3.2),
-             opacity: .random(in: 0.3...1.0),
-             speed: .random(in: 1.5...4.5))
-    }
+
     var body: some View {
         GeometryReader { geo in
             ZStack {
-                LinearGradient(colors: [Color(hex: "020818"), Color(hex: "050D2E"), Color(hex: "071025")],
-                               startPoint: .top, endPoint: .bottom)
-                ForEach(stars) { s in
-                    Circle().fill(Color.white)
+                LinearGradient(
+                    colors: [Color(hex: "020818"), Color(hex: "050D2E"), Color(hex: "071025")],
+                    startPoint: .top, endPoint: .bottom
+                )
+                ForEach(fixedStars) { s in
+                    Circle()
+                        .fill(Color.white)
                         .frame(width: s.size, height: s.size)
                         .position(x: s.x * geo.size.width, y: s.y * geo.size.height)
-                        .opacity(blink ? s.opacity : s.opacity * 0.35)
-                        .animation(.easeInOut(duration: s.speed).repeatForever(autoreverses: true).delay(.random(in: 0...2)), value: blink)
+                        .opacity(blink ? s.opacity : s.opacity * 0.28)
+                        .animation(
+                            .easeInOut(duration: s.speed)
+                                .repeatForever(autoreverses: true)
+                                .delay(s.delay),
+                            value: blink
+                        )
                 }
             }
         }
         .ignoresSafeArea()
-        .onAppear { blink = true }
+        .onAppear {
+            // Fire once — the repeatForever keeps them blinking without any external trigger.
+            withAnimation { blink = true }
+        }
     }
 }
 
@@ -232,22 +269,23 @@ struct HomeView: View {
 
                     // Countdown
                     if sel.isExpired(from: now) {
-                        Text("🎉 Already here!")
+                        Text("Already here!")
                             .font(.system(size: 30, weight: .bold))
                             .foregroundColor(t.accent)
                     } else {
                         let r = sel.timeRemaining(from: now)
-                        // 2x2 grid: days/hours on top row, minutes/seconds on bottom
-                        VStack(spacing: 8) {
-                            HStack(spacing: 32) {
+                        // 2×2 grid — equal-width columns, centred, no wrapping on 3-digit days
+                        VStack(spacing: 12) {
+                            HStack(spacing: 0) {
                                 CountUnit(value: r.days,  label: "days",    theme: t)
                                 CountUnit(value: r.hours, label: "hours",   theme: t)
                             }
-                            HStack(spacing: 32) {
+                            HStack(spacing: 0) {
                                 CountUnit(value: r.minutes, label: "minutes", theme: t)
                                 CountUnit(value: r.seconds, label: "seconds", theme: t)
                             }
                         }
+                        .padding(.horizontal, 24)
                     }
 
                     Spacer()
@@ -289,23 +327,37 @@ struct HomeView: View {
 }
 
 // MARK: - Count Unit (clean, no box)
+// The number text never wraps — font size steps down for 3-digit values.
+// Each cell takes equal width inside the row so everything stays centred.
 struct CountUnit: View {
     let value: Int
     let label: String
     let theme: AppTheme
 
+    private var digitsText: String {
+        // Always at least 2 digits; show raw number for 3+ digits
+        value >= 100 ? "\(value)" : String(format: "%02d", value)
+    }
+
+    // Shrink font a little when we have 3 digits so it fits on one line
+    private var fontSize: CGFloat { value >= 100 ? 60 : 72 }
+
     var body: some View {
-        VStack(spacing: 2) {
-            Text(String(format: "%02d", value))
-                .font(.system(size: 72, weight: .black, design: .rounded))
+        VStack(spacing: 4) {
+            Text(digitsText)
+                .font(.system(size: fontSize, weight: .black, design: .rounded))
                 .foregroundColor(theme.primaryText)
                 .monospacedDigit()
-                .frame(width: 130)
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)   // safety net — won't normally fire
+                .fixedSize(horizontal: true, vertical: false)
             Text(label)
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundColor(theme.secondaryText)
                 .kerning(0.5)
         }
+        // Equal width for every cell so both columns are perfectly aligned
+        .frame(maxWidth: .infinity)
     }
 }
 
@@ -373,17 +425,9 @@ struct TimersListView: View {
                 } else {
                     List {
                         ForEach(store.timers) { timer in
-                            TimerRow(timer: timer, theme: t)
+                            TimerRow(timer: timer, theme: t, onEdit: { timerToEdit = timer })
                                 .listRowBackground(t.cardBg)
                                 .listRowSeparatorTint(t.primaryText.opacity(0.1))
-                                .swipeActions(edge: .leading, allowsFullSwipe: false) {
-                                    Button {
-                                        timerToEdit = timer
-                                    } label: {
-                                        Label("Edit", systemImage: "pencil")
-                                    }
-                                    .tint(t.accent)
-                                }
                         }
                         .onDelete(perform: store.deleteTimer)
                     }
@@ -413,6 +457,8 @@ struct TimersListView: View {
 struct TimerRow: View {
     let timer: CountdownTimer
     let theme: AppTheme
+    // Callback so the row itself can trigger the edit sheet
+    let onEdit: () -> Void
 
     var body: some View {
         HStack(spacing: 14) {
@@ -437,6 +483,13 @@ struct TimerRow: View {
                     .font(.system(size: 11)).foregroundColor(theme.secondaryText.opacity(0.6))
             }
             Spacer()
+            // Edit button always visible on the right
+            Button(action: onEdit) {
+                Image(systemName: "pencil.circle.fill")
+                    .font(.system(size: 26))
+                    .foregroundColor(theme.accent.opacity(0.7))
+            }
+            .buttonStyle(PlainButtonStyle())
         }
         .padding(.vertical, 6)
     }
