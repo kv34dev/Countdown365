@@ -7,28 +7,25 @@ enum AppTheme: String, CaseIterable, Codable {
 
     var displayName: String {
         switch self {
-        case .night: return "Night"
-        case .light: return "Warm Light"
+        case .night:     return "Night"
+        case .light:     return "Warm Light"
         case .nostalgia: return "Nostalgia"
         }
     }
-
     var icon: String {
         switch self {
-        case .night: return "moon.stars.fill"
-        case .light: return "sun.max.fill"
+        case .night:     return "moon.stars.fill"
+        case .light:     return "sun.max.fill"
         case .nostalgia: return "sparkles"
         }
     }
-
     var bgColors: [Color] {
         switch self {
-        case .night:      return [Color(hex: "0D0D1A"), Color(hex: "1A0D2E"), Color(hex: "0D1A2E")]
-        case .light:      return [Color(hex: "FFF8EC"), Color(hex: "F5E6C8"), Color(hex: "EDD9A3")]
-        case .nostalgia:  return [Color(hex: "020818"), Color(hex: "050D2E"), Color(hex: "071025")]
+        case .night:     return [Color(hex: "0D0D1A"), Color(hex: "1A0D2E"), Color(hex: "0D1A2E")]
+        case .light:     return [Color(hex: "FFF8EC"), Color(hex: "F5E6C8"), Color(hex: "EDD9A3")]
+        case .nostalgia: return [Color(hex: "020818"), Color(hex: "050D2E"), Color(hex: "071025")]
         }
     }
-
     var accent: Color {
         switch self {
         case .night:     return Color(hex: "A855F7")
@@ -36,7 +33,6 @@ enum AppTheme: String, CaseIterable, Codable {
         case .nostalgia: return Color(hex: "4A8FE7")
         }
     }
-
     var accentGradient: [Color] {
         switch self {
         case .night:     return [Color(hex: "A855F7"), Color(hex: "6366F1")]
@@ -44,28 +40,24 @@ enum AppTheme: String, CaseIterable, Codable {
         case .nostalgia: return [Color(hex: "4A8FE7"), Color(hex: "2255C4")]
         }
     }
-
     var primaryText: Color {
         switch self {
         case .light: return Color(hex: "4A3728")
         default:     return .white
         }
     }
-
     var secondaryText: Color {
         switch self {
         case .light: return Color(hex: "8B6650").opacity(0.8)
-        default:     return Color.white.opacity(0.4)
+        default:     return Color.white.opacity(0.45)
         }
     }
-
     var cardBg: Color {
         switch self {
         case .light: return Color(hex: "D4A97A").opacity(0.25)
         default:     return Color.white.opacity(0.07)
         }
     }
-
     var colorScheme: ColorScheme {
         switch self {
         case .light: return .light
@@ -80,13 +72,13 @@ struct CountdownTimer: Identifiable, Codable {
     var name: String
     var targetDate: Date
 
-    var timeRemaining: (days: Int, hours: Int, minutes: Int, seconds: Int) {
-        let diff = max(0, targetDate.timeIntervalSinceNow)
+    func timeRemaining(from now: Date) -> (days: Int, hours: Int, minutes: Int, seconds: Int) {
+        let diff = max(0, targetDate.timeIntervalSince(now))
         let total = Int(diff)
         return (total / 86400, (total % 86400) / 3600, (total % 3600) / 60, total % 60)
     }
 
-    var isExpired: Bool { targetDate <= Date() }
+    func isExpired(from now: Date) -> Bool { targetDate <= now }
 }
 
 // MARK: - Store
@@ -113,7 +105,7 @@ class CountdownStore: ObservableObject {
         if timers.isEmpty {
             timers = [
                 CountdownTimer(name: "New Year 2027", targetDate: Calendar.current.date(from: DateComponents(year: 2027, month: 1, day: 1))!),
-                CountdownTimer(name: "Summer 2026", targetDate: Calendar.current.date(from: DateComponents(year: 2026, month: 6, day: 1))!)
+                CountdownTimer(name: "Summer 2026",  targetDate: Calendar.current.date(from: DateComponents(year: 2026, month: 6, day: 1))!)
             ]
         }
     }
@@ -123,7 +115,6 @@ class CountdownStore: ObservableObject {
             UserDefaults.standard.set(data, forKey: "timers")
         }
     }
-
     func saveSelectedID() {
         if let id = selectedTimerID {
             UserDefaults.standard.set(id.uuidString, forKey: "selectedID")
@@ -131,7 +122,6 @@ class CountdownStore: ObservableObject {
             UserDefaults.standard.removeObject(forKey: "selectedID")
         }
     }
-
     func load() {
         if let data = UserDefaults.standard.data(forKey: "timers"),
            let decoded = try? JSONDecoder().decode([CountdownTimer].self, from: data) {
@@ -149,6 +139,11 @@ class CountdownStore: ObservableObject {
 
     func addTimer(_ timer: CountdownTimer) { timers.append(timer) }
     func deleteTimer(at offsets: IndexSet) { timers.remove(atOffsets: offsets) }
+    func updateTimer(_ timer: CountdownTimer) {
+        if let idx = timers.firstIndex(where: { $0.id == timer.id }) {
+            timers[idx] = timer
+        }
+    }
 }
 
 // MARK: - Root
@@ -177,7 +172,6 @@ struct StarfieldView: View {
         let x, y, size: CGFloat
         let opacity, speed: Double
     }
-
     @State private var blink = false
     let stars: [Star] = (0..<200).map { _ in
         Star(x: .random(in: 0...1), y: .random(in: 0...1),
@@ -185,17 +179,13 @@ struct StarfieldView: View {
              opacity: .random(in: 0.3...1.0),
              speed: .random(in: 1.5...4.5))
     }
-
     var body: some View {
         GeometryReader { geo in
             ZStack {
-                LinearGradient(
-                    colors: [Color(hex: "020818"), Color(hex: "050D2E"), Color(hex: "071025")],
-                    startPoint: .top, endPoint: .bottom
-                )
+                LinearGradient(colors: [Color(hex: "020818"), Color(hex: "050D2E"), Color(hex: "071025")],
+                               startPoint: .top, endPoint: .bottom)
                 ForEach(stars) { s in
-                    Circle()
-                        .fill(Color.white)
+                    Circle().fill(Color.white)
                         .frame(width: s.size, height: s.size)
                         .position(x: s.x * geo.size.width, y: s.y * geo.size.height)
                         .opacity(blink ? s.opacity : s.opacity * 0.35)
@@ -211,10 +201,11 @@ struct StarfieldView: View {
 // MARK: - Home View
 struct HomeView: View {
     @EnvironmentObject var store: CountdownStore
-    @State private var tick = false
+    // Real-time clock — updates every second and triggers view refresh
+    @State private var now = Date()
     @State private var showPicker = false
-    let tickTimer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
+    let ticker = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     var t: AppTheme { store.theme }
 
     var body: some View {
@@ -222,11 +213,11 @@ struct HomeView: View {
             background
             if let sel = store.selectedTimer {
                 VStack(spacing: 0) {
-                    Spacer().frame(height: 60)
+                    Spacer().frame(height: 56)
 
-                    // Big event name
+                    // Event title
                     Text(sel.name)
-                        .font(.system(size: 38, weight: .bold, design: .rounded))
+                        .font(.system(size: 36, weight: .bold, design: .rounded))
                         .foregroundColor(t.primaryText)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 28)
@@ -239,17 +230,23 @@ struct HomeView: View {
 
                     Spacer()
 
-                    if sel.isExpired {
+                    // Countdown
+                    if sel.isExpired(from: now) {
                         Text("🎉 Already here!")
                             .font(.system(size: 30, weight: .bold))
                             .foregroundColor(t.accent)
                     } else {
-                        let r = sel.timeRemaining
-                        HStack(alignment: .bottom, spacing: 24) {
-                            CompactUnit(value: r.days,    label: "days",    theme: t)
-                            CompactUnit(value: r.hours,   label: "hours",   theme: t)
-                            CompactUnit(value: r.minutes, label: "minutes", theme: t)
-                            CompactUnit(value: r.seconds, label: "seconds", theme: t)
+                        let r = sel.timeRemaining(from: now)
+                        // 2x2 grid: days/hours on top row, minutes/seconds on bottom
+                        VStack(spacing: 8) {
+                            HStack(spacing: 32) {
+                                CountUnit(value: r.days,  label: "days",    theme: t)
+                                CountUnit(value: r.hours, label: "hours",   theme: t)
+                            }
+                            HStack(spacing: 32) {
+                                CountUnit(value: r.minutes, label: "minutes", theme: t)
+                                CountUnit(value: r.seconds, label: "seconds", theme: t)
+                            }
                         }
                     }
 
@@ -277,7 +274,8 @@ struct HomeView: View {
                 }
             }
         }
-        .onReceive(tickTimer) { _ in tick.toggle() }
+        // Every second update `now` — this rebuilds the view with fresh values
+        .onReceive(ticker) { _ in now = Date() }
         .sheet(isPresented: $showPicker) { TimerPickerSheet().environmentObject(store) }
     }
 
@@ -290,23 +288,23 @@ struct HomeView: View {
     }
 }
 
-// MARK: - Compact Unit (no box)
-struct CompactUnit: View {
+// MARK: - Count Unit (clean, no box)
+struct CountUnit: View {
     let value: Int
     let label: String
     let theme: AppTheme
 
     var body: some View {
-        VStack(spacing: 0) {
+        VStack(spacing: 2) {
             Text(String(format: "%02d", value))
-                .font(.system(size: 62, weight: .black, design: .rounded))
+                .font(.system(size: 72, weight: .black, design: .rounded))
                 .foregroundColor(theme.primaryText)
                 .monospacedDigit()
+                .frame(width: 130)
             Text(label)
-                .font(.system(size: 11, weight: .semibold))
+                .font(.system(size: 13, weight: .semibold))
                 .foregroundColor(theme.secondaryText)
-                .kerning(0.3)
-                .padding(.top, 2)
+                .kerning(0.5)
         }
     }
 }
@@ -358,6 +356,7 @@ struct TimerPickerSheet: View {
 struct TimersListView: View {
     @EnvironmentObject var store: CountdownStore
     @State private var showAdd = false
+    @State private var timerToEdit: CountdownTimer? = nil
     var t: AppTheme { store.theme }
 
     var body: some View {
@@ -377,6 +376,14 @@ struct TimersListView: View {
                             TimerRow(timer: timer, theme: t)
                                 .listRowBackground(t.cardBg)
                                 .listRowSeparatorTint(t.primaryText.opacity(0.1))
+                                .swipeActions(edge: .leading, allowsFullSwipe: false) {
+                                    Button {
+                                        timerToEdit = timer
+                                    } label: {
+                                        Label("Edit", systemImage: "pencil")
+                                    }
+                                    .tint(t.accent)
+                                }
                         }
                         .onDelete(perform: store.deleteTimer)
                     }
@@ -392,7 +399,12 @@ struct TimersListView: View {
                     }
                 }
             }
-            .sheet(isPresented: $showAdd) { AddTimerView().environmentObject(store) }
+            .sheet(isPresented: $showAdd) {
+                AddTimerView(existingTimer: nil).environmentObject(store)
+            }
+            .sheet(item: $timerToEdit) { timer in
+                AddTimerView(existingTimer: timer).environmentObject(store)
+            }
         }
     }
 }
@@ -408,17 +420,18 @@ struct TimerRow: View {
                 Circle()
                     .fill(LinearGradient(colors: theme.accentGradient, startPoint: .topLeading, endPoint: .bottomTrailing))
                     .frame(width: 46, height: 46)
-                Image(systemName: timer.isExpired ? "checkmark" : "timer")
+                Image(systemName: timer.isExpired(from: Date()) ? "checkmark" : "timer")
                     .foregroundColor(.white)
                     .font(.system(size: 18, weight: .semibold))
             }
             VStack(alignment: .leading, spacing: 4) {
                 Text(timer.name).font(.system(size: 17, weight: .semibold)).foregroundColor(theme.primaryText)
-                if timer.isExpired {
+                if timer.isExpired(from: Date()) {
                     Text("Already here!").font(.system(size: 13)).foregroundColor(theme.accent)
                 } else {
-                    let r = timer.timeRemaining
-                    Text("\(r.days)d \(r.hours)h \(r.minutes)m").font(.system(size: 13)).foregroundColor(theme.secondaryText)
+                    let r = timer.timeRemaining(from: Date())
+                    Text("\(r.days)d \(r.hours)h \(r.minutes)m \(r.seconds)s")
+                        .font(.system(size: 13)).foregroundColor(theme.secondaryText)
                 }
                 Text(timer.targetDate.formatted(date: .abbreviated, time: .omitted))
                     .font(.system(size: 11)).foregroundColor(theme.secondaryText.opacity(0.6))
@@ -429,12 +442,24 @@ struct TimerRow: View {
     }
 }
 
-// MARK: - Add Timer View
+// MARK: - Add / Edit Timer View
 struct AddTimerView: View {
     @EnvironmentObject var store: CountdownStore
     @Environment(\.dismiss) var dismiss
-    @State private var name = ""
-    @State private var targetDate = Date().addingTimeInterval(86400 * 30)
+
+    // Pass nil to create, pass a timer to edit
+    let existingTimer: CountdownTimer?
+
+    @State private var name: String
+    @State private var targetDate: Date
+
+    init(existingTimer: CountdownTimer?) {
+        self.existingTimer = existingTimer
+        _name = State(initialValue: existingTimer?.name ?? "")
+        _targetDate = State(initialValue: existingTimer?.targetDate ?? Date().addingTimeInterval(86400 * 30))
+    }
+
+    var isEditing: Bool { existingTimer != nil }
     var t: AppTheme { store.theme }
 
     var body: some View {
@@ -445,30 +470,39 @@ struct AddTimerView: View {
 
                 VStack(spacing: 24) {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("EVENT NAME").font(.system(size: 12, weight: .semibold)).foregroundColor(t.secondaryText).kerning(1)
+                        Text("EVENT NAME")
+                            .font(.system(size: 12, weight: .semibold)).foregroundColor(t.secondaryText).kerning(1)
                         TextField("e.g. Birthday, Vacation...", text: $name)
                             .font(.system(size: 17)).foregroundColor(t.primaryText)
                             .padding(16).background(t.cardBg).cornerRadius(14)
                             .overlay(RoundedRectangle(cornerRadius: 14).stroke(t.accent.opacity(0.2)))
                     }
+
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("EVENT DATE").font(.system(size: 12, weight: .semibold)).foregroundColor(t.secondaryText).kerning(1)
-                        DatePicker("", selection: $targetDate, in: Date()..., displayedComponents: .date)
+                        Text("EVENT DATE")
+                            .font(.system(size: 12, weight: .semibold)).foregroundColor(t.secondaryText).kerning(1)
+                        DatePicker("", selection: $targetDate, displayedComponents: .date)
                             .datePickerStyle(.graphical).accentColor(t.accent)
                             .padding(12).background(t.cardBg).cornerRadius(16)
                     }
+
                     Spacer()
-                    Button(action: addTimer) {
-                        Text("Add Timer").font(.system(size: 17, weight: .bold)).foregroundColor(.white)
+
+                    Button(action: save) {
+                        Text(isEditing ? "Save Changes" : "Add Timer")
+                            .font(.system(size: 17, weight: .bold)).foregroundColor(.white)
                             .frame(maxWidth: .infinity).padding(.vertical, 16)
                             .background(LinearGradient(colors: t.accentGradient, startPoint: .leading, endPoint: .trailing))
-                            .cornerRadius(16).opacity(name.isEmpty ? 0.4 : 1)
+                            .cornerRadius(16)
+                            .opacity(name.trimmingCharacters(in: .whitespaces).isEmpty ? 0.4 : 1)
                     }
-                    .disabled(name.isEmpty).padding(.bottom, 20)
+                    .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
+                    .padding(.bottom, 20)
                 }
                 .padding(.horizontal, 20).padding(.top, 16)
             }
-            .navigationTitle("New Timer").navigationBarTitleDisplayMode(.inline)
+            .navigationTitle(isEditing ? "Edit Timer" : "New Timer")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") { dismiss() }.foregroundColor(t.secondaryText)
@@ -478,8 +512,15 @@ struct AddTimerView: View {
         .colorScheme(t.colorScheme)
     }
 
-    func addTimer() {
-        store.addTimer(CountdownTimer(name: name.trimmingCharacters(in: .whitespaces), targetDate: targetDate))
+    func save() {
+        let trimmed = name.trimmingCharacters(in: .whitespaces)
+        if isEditing, var updated = existingTimer {
+            updated.name = trimmed
+            updated.targetDate = targetDate
+            store.updateTimer(updated)
+        } else {
+            store.addTimer(CountdownTimer(name: trimmed, targetDate: targetDate))
+        }
         dismiss()
     }
 }
@@ -510,12 +551,10 @@ struct ThemeView: View {
                             }
                         }
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 40)
+                    .padding(.horizontal, 20).padding(.bottom, 40)
                 }
             }
-            .navigationTitle("Theme")
-            .navigationBarTitleDisplayMode(.large)
+            .navigationTitle("Theme").navigationBarTitleDisplayMode(.large)
         }
     }
 }
@@ -529,16 +568,14 @@ struct ThemeCard: View {
     var body: some View {
         Button(action: onTap) {
             ZStack(alignment: .bottomLeading) {
-                // Preview bg
+                // BG preview
                 ZStack {
                     if theme == .nostalgia {
                         LinearGradient(colors: [Color(hex: "020818"), Color(hex: "050D2E")], startPoint: .topLeading, endPoint: .bottomTrailing)
-                        // Static mini stars
                         ForEach(0..<50, id: \.self) { i in
                             let px = CGFloat((i * 41 + 11) % 100) / 100.0
                             let py = CGFloat((i * 67 + 19) % 100) / 100.0
-                            Circle()
-                                .fill(Color.white.opacity(0.7))
+                            Circle().fill(Color.white.opacity(0.7))
                                 .frame(width: i % 4 == 0 ? 2 : 1, height: i % 4 == 0 ? 2 : 1)
                                 .position(x: px * 360, y: py * 140)
                         }
@@ -549,19 +586,20 @@ struct ThemeCard: View {
                 .frame(height: 140)
                 .clipShape(RoundedRectangle(cornerRadius: 20))
 
-                // Mini countdown digits preview
-                HStack(alignment: .bottom, spacing: 18) {
-                    ForEach([("24","days"),("07","hrs"),("30","min"),("00","sec")], id: \.0) { item in
-                        VStack(spacing: 1) {
-                            Text(item.0).font(.system(size: 30, weight: .black, design: .rounded)).foregroundColor(theme.primaryText)
-                            Text(item.1).font(.system(size: 9, weight: .semibold)).foregroundColor(theme.secondaryText)
-                        }
+                // Mini 2x2 digit preview
+                VStack(spacing: 2) {
+                    HStack(spacing: 16) {
+                        MiniDigit(num: "24", lbl: "days", theme: theme)
+                        MiniDigit(num: "07", lbl: "hours", theme: theme)
+                    }
+                    HStack(spacing: 16) {
+                        MiniDigit(num: "30", lbl: "min", theme: theme)
+                        MiniDigit(num: "12", lbl: "sec", theme: theme)
                     }
                 }
-                .padding(.leading, 18)
-                .padding(.bottom, 12)
+                .padding(.leading, 18).padding(.bottom, 10)
 
-                // Theme label badge
+                // Badge
                 VStack {
                     HStack {
                         Spacer()
@@ -583,14 +621,25 @@ struct ThemeCard: View {
             .overlay(alignment: .topLeading) {
                 if isSelected {
                     Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 26))
-                        .foregroundColor(theme.accent)
-                        .padding(14)
+                        .font(.system(size: 26)).foregroundColor(theme.accent).padding(14)
                 }
             }
             .shadow(color: isSelected ? theme.accent.opacity(0.4) : Color.black.opacity(0.25), radius: isSelected ? 16 : 6)
         }
         .buttonStyle(PlainButtonStyle())
+    }
+}
+
+struct MiniDigit: View {
+    let num: String
+    let lbl: String
+    let theme: AppTheme
+    var body: some View {
+        VStack(spacing: 0) {
+            Text(num).font(.system(size: 26, weight: .black, design: .rounded)).foregroundColor(theme.primaryText)
+            Text(lbl).font(.system(size: 8, weight: .semibold)).foregroundColor(theme.secondaryText)
+        }
+        .frame(width: 60)
     }
 }
 
