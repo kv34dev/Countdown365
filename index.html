@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Countdown365+</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+<link rel="icon" type="image/png" href="favicon.png">
+<style>
+  :root {
+    --bg: #050914;
+    --bg2: #0a1128;
+    --accent: #7c5cfc;
+    --accent2: #4f8ef7;
+    --gold: #e8b86d;
+    --text: #e8eaf0;
+    --muted: rgba(232,234,240,0.45);
+    --card: rgba(255,255,255,0.045);
+    --border: rgba(255,255,255,0.08);
+    --radius: 18px;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Sora', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    overflow-x: hidden;
+    line-height: 1.7;
+  }
+
+  /* ── STARFIELD ── */
+  #stars {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+  }
+  #stars canvas { display: block; width: 100%; height: 100%; }
+
+  /* ── NAV ── */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 48px;
+    background: rgba(5,9,20,0.7);
+    backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--border);
+  }
+  .nav-logo {
+    font-size: 22px;
+    font-weight: 800;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: -0.5px;
+  }
+  .nav-links { display: flex; gap: 36px; }
+  .nav-links a {
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    transition: color .2s;
+  }
+  .nav-links a:hover { color: var(--text); }
+
+  /* ── SECTIONS ── */
+  section { position: relative; z-index: 1; }
+
+  /* ── HERO ── */
+  #hero {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 100px 24px 80px;
+  }
+
+  .hero-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(124,92,252,0.15);
+    border: 1px solid rgba(124,92,252,0.35);
+    border-radius: 999px;
+    padding: 6px 18px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 28px;
+    animation: fadeUp .6s ease both;
+  }
+  .hero-pill span { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: pulse 1.4s infinite; }
+
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .3; } }
+
+  h1 {
+    font-size: clamp(48px, 8vw, 96px);
+    font-weight: 800;
+    line-height: 1.05;
+    letter-spacing: -2px;
+    animation: fadeUp .7s .1s ease both;
+  }
+  h1 .line2 {
+    background: linear-gradient(100deg, var(--accent), var(--accent2), var(--gold));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .hero-sub {
+    margin-top: 24px;
+    max-width: 580px;
+    color: var(--muted);
+    font-size: 18px;
+    font-weight: 300;
+    animation: fadeUp .7s .2s ease both;
+  }
+
+  .hero-cta {
+    margin-top: 44px;
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    justify-content: center;
+    animation: fadeUp .7s .35s ease both;
+  }
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 15px 34px;
+    border-radius: 999px;
+    background: linear-gradient(100deg, var(--accent), var(--accent2));
+    color: #fff;
+    font-family: 'Sora', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    transition: transform .2s, box-shadow .2s;
+    box-shadow: 0 0 40px rgba(124,92,252,0.4);
+  }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 0 60px rgba(124,92,252,0.55); }
+  .btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 15px 34px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: 'Sora', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: border-color .2s, color .2s;
+  }
+  .btn-ghost:hover { border-color: rgba(255,255,255,0.25); color: var(--text); }
+
+  /* Floating countdown widget */
+  .hero-widget {
+    margin-top: 72px;
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+    animation: fadeUp .7s .5s ease both;
+  }
+  .digit-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    width: 100px;
+    padding: 22px 0 16px;
+    text-align: center;
+    backdrop-filter: blur(10px);
+    transition: transform .3s;
+  }
+  .digit-card:hover { transform: translateY(-6px); }
+  .digit-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 48px;
+    font-weight: 700;
+    line-height: 1;
+    background: linear-gradient(160deg, #fff 30%, var(--accent));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .digit-lbl {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-top: 8px;
+  }
+
+  /* ── FEATURES ── */
+  #features {
+    padding: 120px 24px;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+  .section-tag {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 16px;
+  }
+  .section-title {
+    font-size: clamp(32px, 5vw, 52px);
+    font-weight: 800;
+    letter-spacing: -1.5px;
+    line-height: 1.1;
+    margin-bottom: 64px;
+  }
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+  }
+  .feat-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 36px 32px;
+    transition: border-color .3s, transform .3s;
+    position: relative;
+    overflow: hidden;
+  }
+  .feat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    opacity: 0;
+    transition: opacity .3s;
+  }
+  .feat-card:hover { border-color: rgba(124,92,252,0.3); transform: translateY(-4px); }
+  .feat-card:hover::before { opacity: 1; }
+  .feat-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    margin-bottom: 22px;
+    background: rgba(124,92,252,0.12);
+    border: 1px solid rgba(124,92,252,0.2);
+  }
+  .feat-card h3 {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    letter-spacing: -0.3px;
+  }
+  .feat-card p { color: var(--muted); font-size: 15px; font-weight: 300; }
+
+  /* ── THEMES SECTION ── */
+  #themes {
+    padding: 120px 24px;
+    background: linear-gradient(180deg, transparent, rgba(10,17,40,0.6), transparent);
+  }
+  .themes-inner { max-width: 1100px; margin: 0 auto; }
+  .themes-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    margin-top: 56px;
+  }
+  .theme-card {
+    border-radius: 24px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    transition: transform .3s, box-shadow .3s;
+    cursor: default;
+  }
+  .theme-card:hover { transform: scale(1.03); }
+  .theme-preview {
+    height: 160px;
+    display: flex;
+    align-items: flex-end;
+    padding: 20px;
+    position: relative;
+  }
+  .tc-night .theme-preview { background: linear-gradient(135deg, #0D0D1A, #1A0D2E, #0D1A2E); }
+  .tc-light .theme-preview { background: linear-gradient(135deg, #FFF8EC, #F5E6C8, #EDD9A3); }
+  .tc-nostalgia .theme-preview { background: linear-gradient(135deg, #020818, #050D2E, #071025); }
+  .theme-mini-count { display: flex; gap: 14px; }
+  .tmc { text-align: center; }
+  .tmc-num { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 28px; }
+  .tmc-lbl { font-size: 9px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; margin-top: 2px; }
+  .tc-night .tmc-num { color: #fff; }
+  .tc-night .tmc-lbl { color: rgba(255,255,255,0.4); }
+  .tc-light .tmc-num { color: #4A3728; }
+  .tc-light .tmc-lbl { color: rgba(74,55,40,0.5); }
+  .tc-nostalgia .tmc-num { color: #fff; }
+  .tc-nostalgia .tmc-lbl { color: rgba(255,255,255,0.4); }
+  .theme-badge {
+    position: absolute;
+    top: 14px; right: 14px;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 12px;
+    border-radius: 999px;
+  }
+  .tc-night .theme-badge { background: rgba(168,85,247,0.25); color: #A855F7; border: 1px solid rgba(168,85,247,0.3); }
+  .tc-light .theme-badge { background: rgba(160,113,79,0.25); color: #A0714F; border: 1px solid rgba(160,113,79,0.3); }
+  .tc-nostalgia .theme-badge { background: rgba(74,143,231,0.25); color: #4A8FE7; border: 1px solid rgba(74,143,231,0.3); }
+  .theme-info { padding: 20px 22px; background: var(--card); backdrop-filter: blur(10px); }
+  .theme-info h4 { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+  .theme-info p { font-size: 13px; color: var(--muted); font-weight: 300; }
+
+  /* ── PRIVACY ── */
+  #privacy {
+    padding: 120px 24px;
+    max-width: 800px;
+    margin: 0 auto;
+  }
+  .privacy-block {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 52px 52px;
+    backdrop-filter: blur(8px);
+  }
+  .privacy-block h2 {
+    font-size: 36px;
+    font-weight: 800;
+    letter-spacing: -1px;
+    margin-bottom: 8px;
+  }
+  .privacy-updated {
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 40px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .privacy-section { margin-bottom: 36px; }
+  .privacy-section h3 {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--accent);
+    margin-bottom: 10px;
+    letter-spacing: -0.2px;
+  }
+  .privacy-section p, .privacy-section li {
+    font-size: 15px;
+    color: var(--muted);
+    font-weight: 300;
+    margin-bottom: 8px;
+  }
+  .privacy-section ul { list-style: none; padding: 0; }
+  .privacy-section ul li::before {
+    content: '→ ';
+    color: var(--accent);
+    font-weight: 700;
+  }
+  .highlight-box {
+    background: rgba(124,92,252,0.08);
+    border: 1px solid rgba(124,92,252,0.2);
+    border-radius: 12px;
+    padding: 18px 22px;
+    margin: 20px 0;
+    font-size: 14px;
+    color: var(--text);
+    font-weight: 400;
+  }
+  .highlight-box strong { color: var(--accent); }
+
+  /* ── SUPPORT ── */
+  #support {
+    padding: 120px 24px;
+    max-width: 720px;
+    margin: 0 auto;
+  }
+  .support-header { text-align: center; margin-bottom: 56px; }
+  .support-header p { color: var(--muted); font-size: 17px; font-weight: 300; margin-top: 14px; }
+
+  form {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 48px;
+    backdrop-filter: blur(10px);
+  }
+  .form-group { margin-bottom: 24px; }
+  label {
+    display: block;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  input, textarea, select {
+    width: 100%;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 18px;
+    color: var(--text);
+    font-family: 'Sora', sans-serif;
+    font-size: 15px;
+    font-weight: 400;
+    outline: none;
+    transition: border-color .2s, box-shadow .2s;
+    -webkit-appearance: none;
+  }
+  input:focus, textarea:focus, select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(124,92,252,0.15);
+  }
+  select option { background: #0a1128; }
+  textarea { resize: vertical; min-height: 140px; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+  .submit-btn {
+    width: 100%;
+    padding: 16px;
+    border-radius: 12px;
+    background: linear-gradient(100deg, var(--accent), var(--accent2));
+    color: #fff;
+    font-family: 'Sora', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    border: none;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: opacity .2s, transform .2s, box-shadow .2s;
+    box-shadow: 0 0 30px rgba(124,92,252,0.3);
+    letter-spacing: 0.3px;
+  }
+  .submit-btn:hover { opacity: .9; transform: translateY(-2px); box-shadow: 0 0 50px rgba(124,92,252,0.45); }
+  .submit-btn:active { transform: translateY(0); }
+
+  #form-success {
+    display: none;
+    text-align: center;
+    padding: 40px;
+    background: rgba(124,92,252,0.08);
+    border: 1px solid rgba(124,92,252,0.25);
+    border-radius: var(--radius);
+    margin-top: 16px;
+  }
+  #form-success .success-icon { font-size: 48px; margin-bottom: 16px; }
+  #form-success h4 { font-size: 22px; font-weight: 700; margin-bottom: 8px; }
+  #form-success p { color: var(--muted); font-size: 15px; }
+
+  /* ── FOOTER ── */
+  footer {
+    position: relative;
+    z-index: 1;
+    border-top: 1px solid var(--border);
+    padding: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 24px;
+  }
+  .footer-logo {
+    font-size: 20px;
+    font-weight: 800;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  footer nav a {
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 600;
+    margin-left: 28px;
+    transition: color .2s;
+  }
+  footer nav a:hover { color: var(--text); }
+  .footer-copy { width: 100%; color: var(--muted); font-size: 13px; }
+
+  /* ── ANIMATIONS ── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .reveal {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity .6s ease, transform .6s ease;
+  }
+  .reveal.visible { opacity: 1; transform: none; }
+
+  /* Live digits */
+  @keyframes tickFlip {
+    0%   { transform: rotateX(0deg); }
+    50%  { transform: rotateX(90deg); }
+    100% { transform: rotateX(0deg); }
+  }
+  .tick { display: inline-block; }
+
+  /* ── NOSTALGIA STARS (theme preview) ── */
+  .nostalgia-star {
+    position: absolute;
+    width: 2px; height: 2px;
+    background: #fff;
+    border-radius: 50%;
+    opacity: 0.6;
+  }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 768px) {
+    nav { padding: 16px 24px; }
+    .nav-links { gap: 20px; }
+    .nav-links a { font-size: 12px; }
+    .themes-grid { grid-template-columns: 1fr; }
+    .form-row { grid-template-columns: 1fr; }
+    .privacy-block { padding: 36px 24px; }
+    form { padding: 32px 24px; }
+    footer { padding: 32px 24px; flex-direction: column; align-items: flex-start; }
+    footer nav { margin-top: 0; }
+    footer nav a { margin-left: 0; margin-right: 20px; }
+    .hero-widget .digit-card { width: 80px; }
+    .hero-widget .digit-num { font-size: 38px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- STARFIELD CANVAS -->
+<div id="stars"><canvas id="starsCanvas"></canvas></div>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">⏱ Countdown365+</div>
+  <div class="nav-links">
+    <a href="#features">Features</a>
+    <a href="#themes">Themes</a>
+    <a href="#privacy">Privacy</a>
+    <a href="#support">Support</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section id="hero">
+  <div class="hero-pill"><span></span>Available on iOS</div>
+  <h1>
+    Make every<br/>
+    <span class="line2">moment count.</span>
+  </h1>
+  <p class="hero-sub">
+    I built Countdown to help you stay excited about what's coming — birthdays, trips, deadlines, milestones. Watch the seconds tick away in real time.
+  </p>
+  <div class="hero-cta">
+    <a href="#support" class="btn-primary">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      Contact Support
+    </a>
+    <a href="#features" class="btn-ghost">Explore Features →</a>
+  </div>
+
+  <!-- Live countdown widget -->
+  <div class="hero-widget" id="heroWidget">
+    <div class="digit-card">
+      <div class="digit-num tick" id="h-days">--</div>
+      <div class="digit-lbl">days</div>
+    </div>
+    <div class="digit-card">
+      <div class="digit-num tick" id="h-hours">--</div>
+      <div class="digit-lbl">hours</div>
+    </div>
+    <div class="digit-card">
+      <div class="digit-num tick" id="h-mins">--</div>
+      <div class="digit-lbl">mins</div>
+    </div>
+    <div class="digit-card">
+      <div class="digit-num tick" id="h-secs">--</div>
+      <div class="digit-lbl">secs</div>
+    </div>
+  </div>
+  <div style="margin-top:12px; font-size:12px; color: var(--muted); letter-spacing:0.5px;">
+    ↑ Live countdown to New Year 2027
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section id="features">
+  <div class="section-tag">What I built</div>
+  <div class="section-title">Everything you need,<br/>nothing you don't.</div>
+  <div class="features-grid">
+    <div class="feat-card reveal">
+      <div class="feat-icon">⏱</div>
+      <h3>Live Second-by-Second</h3>
+      <p>My app updates every single second so you always see exactly how much time is left. No manual refresh, no delays — pure real-time precision.</p>
+    </div>
+    <div class="feat-card reveal">
+      <div class="feat-icon">📋</div>
+      <h3>Multiple Timers</h3>
+      <p>I've made it effortless to manage as many events as you want. Add, edit, delete, and switch between your countdowns in seconds with a slick list view.</p>
+    </div>
+    <div class="feat-card reveal">
+      <div class="feat-icon">🎨</div>
+      <h3>Three Beautiful Themes</h3>
+      <p>My three hand-crafted themes — Night, Warm Light, and Nostalgia — each give the app a completely different personality. Pick your vibe.</p>
+    </div>
+    <div class="feat-card reveal">
+      <div class="feat-icon">💾</div>
+      <h3>Persistent Storage</h3>
+      <p>All my timers and your theme preference are saved locally on your device. They'll be right there waiting for you every time you open the app.</p>
+    </div>
+    <div class="feat-card reveal">
+      <div class="feat-icon">✨</div>
+      <h3>Animated Starfield</h3>
+      <p>My Nostalgia theme features a procedurally generated, gently blinking starfield — a living background that makes every second feel more cosmic.</p>
+    </div>
+    <div class="feat-card reveal">
+      <div class="feat-icon">📱</div>
+      <h3>Native iOS Design</h3>
+      <p>Built entirely in SwiftUI, my app feels right at home on your iPhone. Fluid animations, smooth tab navigation, and clean native sheets.</p>
+    </div>
+  </div>
+</section>
+
+<!-- THEMES -->
+<section id="themes">
+  <div class="themes-inner">
+    <div class="section-tag">My Themes</div>
+    <div class="section-title reveal">Three moods.<br/>One app.</div>
+    <div class="themes-grid">
+
+      <div class="theme-card tc-night reveal">
+        <div class="theme-preview">
+          <span class="theme-badge">🌙 Night</span>
+          <div class="theme-mini-count">
+            <div class="tmc"><div class="tmc-num">24</div><div class="tmc-lbl">days</div></div>
+            <div class="tmc"><div class="tmc-num">07</div><div class="tmc-lbl">hours</div></div>
+            <div class="tmc"><div class="tmc-num">30</div><div class="tmc-lbl">min</div></div>
+            <div class="tmc"><div class="tmc-num">12</div><div class="tmc-lbl">sec</div></div>
+          </div>
+        </div>
+        <div class="theme-info">
+          <h4>Night</h4>
+          <p>Deep indigo darkness with a purple–violet accent. Perfect for late-night anticipation.</p>
+        </div>
+      </div>
+
+      <div class="theme-card tc-light reveal">
+        <div class="theme-preview">
+          <span class="theme-badge">☀️ Warm Light</span>
+          <div class="theme-mini-count">
+            <div class="tmc"><div class="tmc-num">24</div><div class="tmc-lbl">days</div></div>
+            <div class="tmc"><div class="tmc-num">07</div><div class="tmc-lbl">hours</div></div>
+            <div class="tmc"><div class="tmc-num">30</div><div class="tmc-lbl">min</div></div>
+            <div class="tmc"><div class="tmc-num">12</div><div class="tmc-lbl">sec</div></div>
+          </div>
+        </div>
+        <div class="theme-info">
+          <h4>Warm Light</h4>
+          <p>Creamy parchment tones with warm brown accents. Like coffee on a Sunday morning.</p>
+        </div>
+      </div>
+
+      <div class="theme-card tc-nostalgia reveal" style="position:relative;overflow:hidden;">
+        <div class="theme-preview" style="position:relative;">
+          <span class="theme-badge">✨ Nostalgia</span>
+          <!-- tiny static stars -->
+          <div style="position:absolute;inset:0;overflow:hidden;">
+            <div class="nostalgia-star" style="top:12%;left:8%;"></div>
+            <div class="nostalgia-star" style="top:34%;left:55%;width:3px;height:3px;"></div>
+            <div class="nostalgia-star" style="top:60%;left:22%;"></div>
+            <div class="nostalgia-star" style="top:20%;left:78%;width:3px;height:3px;"></div>
+            <div class="nostalgia-star" style="top:75%;left:66%;"></div>
+            <div class="nostalgia-star" style="top:48%;left:89%;"></div>
+            <div class="nostalgia-star" style="top:8%;left:42%;"></div>
+          </div>
+          <div class="theme-mini-count" style="position:relative;z-index:1;">
+            <div class="tmc"><div class="tmc-num">24</div><div class="tmc-lbl">days</div></div>
+            <div class="tmc"><div class="tmc-num">07</div><div class="tmc-lbl">hours</div></div>
+            <div class="tmc"><div class="tmc-num">30</div><div class="tmc-lbl">min</div></div>
+            <div class="tmc"><div class="tmc-num">12</div><div class="tmc-lbl">sec</div></div>
+          </div>
+        </div>
+        <div class="theme-info">
+          <h4>Nostalgia</h4>
+          <p>Midnight navy with a living animated starfield and electric blue accents. Timeless and cosmic.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- PRIVACY POLICY -->
+<section id="privacy">
+  <div class="privacy-block reveal">
+    <div class="section-tag">Legal</div>
+    <h2>Privacy Policy</h2>
+    <div class="privacy-updated">Last updated: February 20, 2026 &nbsp;·&nbsp; Version 1.0</div>
+
+    <div class="highlight-box">
+      <strong>TL;DR:</strong> My app collects absolutely no personal data. Everything stays on your device. I never see, store, or share anything about you.
+    </div>
+
+    <div class="privacy-section">
+      <h3>1. Who I Am</h3>
+      <p>I am an independent developer. Countdown is my personal iOS application designed to help users track time remaining until future events. This Privacy Policy explains my practices regarding any information related to your use of my app.</p>
+    </div>
+
+    <div class="privacy-section">
+      <h3>2. What Data I Collect</h3>
+      <p>I collect <strong>no personal data whatsoever</strong>. My app does not have user accounts, registration, or sign-in of any kind. Specifically, I do not collect:</p>
+      <ul>
+        <li>Your name, email, or any identifying information</li>
+        <li>Location data or device identifiers</li>
+        <li>Analytics, crash reports, or usage metrics</li>
+        <li>Any data transmitted to my servers (I have none)</li>
+        <li>Payment or financial information</li>
+      </ul>
+    </div>
+
+    <div class="privacy-section">
+      <h3>3. How I Store Your Data</h3>
+      <p>All data my app saves — your timer names, target dates, selected theme — is stored exclusively in <strong>Apple's UserDefaults on your local device</strong>. This data never leaves your device through my app. It is never synced to any server I operate.</p>
+    </div>
+
+    <div class="privacy-section">
+      <h3>4. Third-Party Services</h3>
+      <p>My app does not integrate any third-party SDKs, analytics frameworks, advertising networks, or tracking tools. I use no external APIs or services within the app itself.</p>
+      <p>This website uses <a href="https://formspree.io" style="color:var(--accent);">Formspree</a> solely to receive support form submissions. Please review Formspree's own privacy policy if you choose to submit a request.</p>
+    </div>
+
+    <div class="privacy-section">
+      <h3>5. Children's Privacy</h3>
+      <p>My app is suitable for all ages. Since I collect no personal data from anyone, there is no special concern regarding users under 13 (COPPA) or under 16 (GDPR). My app complies with Apple's guidelines for apps available to all ages.</p>
+    </div>
+
+    <div class="privacy-section">
+      <h3>6. Your Rights</h3>
+      <p>Since I collect no personal data, there is nothing for me to access, correct, export, or delete on your behalf. All your app data lives on your device and can be fully removed by uninstalling the app. If you have any concerns, I'm happy to address them through my support form below.</p>
+    </div>
+
+    <div class="privacy-section">
+      <h3>7. Changes to This Policy</h3>
+      <p>If I ever update this Privacy Policy, I will post the revised version here with a new date. Continued use of my app after any changes constitutes acceptance of the updated policy.</p>
+    </div>
+
+    <div class="privacy-section">
+      <h3>8. Contact</h3>
+      <p>If you have any questions about my privacy practices, please reach out using my support form below. I typically respond within 2–3 business days.</p>
+    </div>
+  </div>
+</section>
+
+<!-- SUPPORT -->
+<section id="support">
+  <div class="support-header reveal">
+    <div class="section-tag">Get In Touch</div>
+    <div class="section-title">I'm here to help.</div>
+    <p>Found a bug? Have a feature request? Or just want to say hi? My inbox is open — fill in the form and I'll get back to you personally.</p>
+  </div>
+
+  <form id="supportForm" action="https://formspree.io/f/mlgwwwrb" method="POST" class="reveal">
+    <div class="form-row">
+      <div class="form-group">
+        <label for="name">Your Name</label>
+        <input type="text" id="name" name="name" placeholder="Jane Smith" required autocomplete="name"/>
+      </div>
+      <div class="form-group">
+        <label for="email">Email Address</label>
+        <input type="email" id="email" name="email" placeholder="jane@example.com" required autocomplete="email"/>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="type">Request Type</label>
+      <select id="type" name="request_type">
+        <option value="bug">🐛 Bug Report</option>
+        <option value="feature">✨ Feature Request</option>
+        <option value="question">❓ General Question</option>
+        <option value="privacy">🔒 Privacy Inquiry</option>
+        <option value="other">💬 Other</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label for="subject">Subject</label>
+      <input type="text" id="subject" name="subject" placeholder="Briefly describe your issue..." required/>
+    </div>
+
+    <div class="form-group">
+      <label for="message">Message</label>
+      <textarea id="message" name="message" placeholder="Tell me everything — the more detail, the better I can help. Include your iOS version and iPhone model if reporting a bug." required></textarea>
+    </div>
+
+    <!-- Honeypot for spam protection -->
+    <input type="text" name="_gotcha" style="display:none"/>
+
+    <button type="submit" class="submit-btn">Send Message →</button>
+  </form>
+
+  <div id="form-success">
+    <div class="success-icon">🎉</div>
+    <h4>Message received!</h4>
+    <p>Thanks for reaching out. I'll personally read your message and get back to you within 2–3 business days.</p>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">⏱ Countdown365+</div>
+  <nav>
+    <a href="#features">Features</a>
+    <a href="#themes">Themes</a>
+    <a href="#privacy">Privacy</a>
+    <a href="#support">Support</a>
+  </nav>
+  <div class="footer-copy">
+    &copy; 2026 Countdown365+<br>Made with ❤️ for better productivity<br>All data stays on your device.
+  </div>
+</footer>
+
+<script>
+/* ── STARFIELD ── */
+(function() {
+  const canvas = document.getElementById('starsCanvas');
+  const ctx = canvas.getContext('2d');
+  let stars = [];
+  let W, H;
+
+  function resize() {
+    W = canvas.width  = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+  }
+
+  function initStars() {
+    stars = [];
+    for (let i = 0; i < 200; i++) {
+      stars.push({
+        x: Math.random() * W,
+        y: Math.random() * H,
+        r: Math.random() * 1.4 + 0.4,
+        base: Math.random() * 0.7 + 0.15,
+        speed: Math.random() * 0.008 + 0.003,
+        phase: Math.random() * Math.PI * 2
+      });
+    }
+  }
+
+  let t = 0;
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+    t += 0.016;
+    stars.forEach(s => {
+      const alpha = s.base + Math.sin(t * s.speed * 60 + s.phase) * (s.base * 0.7);
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(255,255,255,${Math.max(0, Math.min(1, alpha))})`;
+      ctx.fill();
+    });
+    requestAnimationFrame(draw);
+  }
+
+  resize();
+  initStars();
+  draw();
+  window.addEventListener('resize', () => { resize(); initStars(); });
+})();
+
+/* ── LIVE COUNTDOWN to New Year 2026 ── */
+(function() {
+  const target = new Date('2027-01-01T00:00:00');
+  function update() {
+    const now = new Date();
+    let diff = Math.max(0, target - now) / 1000;
+    const days  = Math.floor(diff / 86400); diff -= days * 86400;
+    const hours = Math.floor(diff / 3600);  diff -= hours * 3600;
+    const mins  = Math.floor(diff / 60);    diff -= mins * 60;
+    const secs  = Math.floor(diff);
+    const pad = n => String(n).padStart(2, '0');
+    document.getElementById('h-days').textContent  = pad(days);
+    document.getElementById('h-hours').textContent = pad(hours);
+    document.getElementById('h-mins').textContent  = pad(mins);
+    document.getElementById('h-secs').textContent  = pad(secs);
+  }
+  update();
+  setInterval(update, 1000);
+})();
+
+/* ── SCROLL REVEAL ── */
+(function() {
+  const els = document.querySelectorAll('.reveal');
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) { e.target.classList.add('visible'); io.unobserve(e.target); }
+    });
+  }, { threshold: 0.12 });
+  els.forEach(el => io.observe(el));
+})();
+
+/* ── FORMSPREE AJAX ── */
+(function() {
+  const form = document.getElementById('supportForm');
+  const success = document.getElementById('form-success');
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = form.querySelector('.submit-btn');
+    btn.textContent = 'Sending…';
+    btn.disabled = true;
+    try {
+      const res = await fetch(form.action, {
+        method: 'POST',
+        body: new FormData(form),
+        headers: { 'Accept': 'application/json' }
+      });
+      if (res.ok) {
+        form.style.display = 'none';
+        success.style.display = 'block';
+      } else {
+        btn.textContent = 'Error — try again';
+        btn.disabled = false;
+      }
+    } catch {
+      btn.textContent = 'Error — try again';
+      btn.disabled = false;
+    }
+  });
+})();
+</script>
+</body>
+</html>
