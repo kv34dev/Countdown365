@@ -33,7 +33,24 @@ It focuses on simplicity, elegance, and real-time precision — making every mom
 ## 📂 Project Structure
 
 ```
-Add Project Structure
+Countdown365/
+ ├── Countdown365/
+ │    ├── Assets
+ │    ├── ContentView.swift
+ │    ├── Countdown365.entitlements
+ │    └── Countdown365App.swift
+ │
+ ├── CountdownWidget/
+ │    ├── Assets
+ │    ├── CountdownWidget.swift
+ │    ├── CountdownWidgetBundle.swift
+ │    ├── CountdownWidgetControl.swift
+ │    ├── CountdownWidgetLiveActivity.swift
+ │    └── Info.plist
+ │
+ └── Frameworks/
+      ├── WidgetKit.framework
+      └── SwiftUI.framework
 ```
 
 ## 🚀 Installation
