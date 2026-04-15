@@ -45,8 +45,7 @@ git clone https://github.com/kv34dev/Countdown365
 3. Open the project in Xcode:
 ```
 cd project
-open Countdown365
-.xcodeproj
+open Countdown365.xcodeproj
 ```
 3. Build and run the app on a simulator or physical device (iOS 16+ recommended).
 
