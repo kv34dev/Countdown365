@@ -1,6 +1,6 @@
-<img width="1242" height="2688" alt="en-1-Introduction" src="https://github.com/user-attachments/assets/f859f48e-6995-4701-a7b0-4b83a7179cf1" /># Countdown365+ — Countdown Timer App
+# Countdown365+ — Minimalist Countdown Timer App
 
-**Countdown** is an iOS application built with **SwiftUI**, designed to help users track important dates with a clean and immersive experience.  
+**Countdown365+** is an iOS application built with **SwiftUI**, designed to help users track important dates with a clean and immersive experience.  
 It focuses on simplicity, elegance, and real-time precision — making every moment feel intentional.
 
 <img width="3724" height="2686" alt="gh-card" src="https://github.com/user-attachments/assets/96ec15d8-2e36-4eb3-8af2-df2b76f2a310" />
